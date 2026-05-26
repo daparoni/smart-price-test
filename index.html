@@ -442,7 +442,16 @@
       <input type="hidden" id="q5">
     </div>
     <div class="question-block">
-      <div class="question-label">6. ¿Qué cambiarías o qué te faltó? <span class="q-optional">(opcional)</span></div>
+      <div class="question-label">6. Cuando vas a comprar algo caro (TV, electrodoméstico), ¿sueles comparar precios antes de decidir?</div>
+      <div class="choice-group">
+        <button class="c-btn" onclick="selChoice(this,'q6b')">Siempre</button>
+        <button class="c-btn" onclick="selChoice(this,'q6b')">A veces</button>
+        <button class="c-btn" onclick="selChoice(this,'q6b')">Casi nunca</button>
+      </div>
+      <input type="hidden" id="q6b">
+    </div>
+    <div class="question-block">
+      <div class="question-label">7. ¿Qué cambiarías o qué te faltó? <span class="q-optional">(opcional)</span></div>
       <textarea class="text-inp" id="q6" rows="3" placeholder="Cualquier cosa que se te haya venido a la mente..."></textarea>
     </div>
     <div class="nav" style="margin-top:8px;">
@@ -538,7 +547,8 @@ function nextPart() {
 function submitSurvey() {
   if (!answers.q4) { alert('Por favor valora la curiosidad que generó el precio borroso.'); return; }
   if (!answers.q5) { alert('Por favor selecciona si lo habrías usado.'); return; }
-  answers.q6 = document.getElementById('q6').value.trim() || 'Sin comentarios';
+  answers.q6b = document.getElementById('q6b').value || 'No respondido';
+  answers.q7 = document.getElementById('q6').value.trim() || 'Sin comentarios';
   const FORMSPREE_ID = 'xkoepjrn';
   if (FORMSPREE_ID === 'YOUR_FORM_ID') { go(10); return; }
   fetch('https://formspree.io/f/'+FORMSPREE_ID, {
