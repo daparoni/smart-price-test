@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartPrice · Prueba de concepto</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --teal-50: #E1F5EE; --teal-100: #9FE1CB; --teal-500: #1D9E75;
+    --teal-700: #0F6E56; --teal-900: #085041;
+    --gray-50: #F7F6F3; --gray-100: #EFEFED; --gray-200: #D3D1C7;
+    --gray-400: #888780; --gray-700: #444441; --gray-900: #1A1A18;
+    --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 999px;
+  }
+  html, body { height: 100%; font-family: 'DM Sans', system-ui, sans-serif; background: var(--gray-50); color: var(--gray-900); -webkit-font-smoothing: antialiased; }
+  body { display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding-bottom: 40px; }
+  #progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--teal-500); transition: width 0.4s ease; z-index: 100; }
+  .header { width: 100%; padding: 18px 20px 14px; display: flex; align-items: center; justify-content: space-between; max-width: 480px; margin: 0 auto; }
+  .logo { font-size: 15px; font-weight: 600; color: var(--teal-700); }
+  .step-label { font-size: 12px; color: var(--gray-400); }
+  .container { width: 100%; max-width: 420px; padding: 0 16px; flex: 1; }
+  .screen { display: none; animation: fadeUp 0.3s ease forwards; }
+  .screen.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes countIn { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+  .scanning { animation: pulse 1.2s ease-in-out infinite; }
+  .phone { background: #fff; border: 1px solid var(--gray-100); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; }
+  .phone-bar { background: var(--gray-50); padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--gray-100); }
+  .phone-body { padding: 14px; }
+  .caption { background: #fff; border: 1px solid var(--gray-100); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 20px; }
+  .caption-step { font-size: 11px; font-weight: 600; color: var(--teal-700); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .caption-desc { font-size: 13px; color: var(--gray-700); line-height: 1.5; }
+  .btn { width: 100%; padding: 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); }
+  .btn-secondary { background: #fff; color: var(--gray-700); border: 1px solid var(--gray-200); margin-bottom: 8px; }
+  .nav { display: flex; gap: 8px; }
+  .nav-back { padding: 11px 16px; background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius-md); font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--gray-400); cursor: pointer; }
+  .nav .btn-primary { flex: 1; }
+  .pr { display: flex; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--gray-100); gap: 8px; }
+  .pr:last-child { border-bottom: none; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .blur { filter: blur(5px); user-select: none; }
+  .total-box { background: var(--teal-50); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
+  .badge { display: inline-flex; align-items: center; gap: 3px; background: var(--teal-50); color: var(--teal-900); font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-full); }
+  .product-row { background: #fff; border: 1px solid var(--gray-100); border-radius: var(--radius-sm); padding: 10px; display: flex; gap: 10px; align-items: center; cursor: pointer; transition: border-color 0.15s; }
+  .product-row:hover { border-color: var(--teal-100); }
+  .product-icon { width: 44px; height: 44px; background: var(--gray-50); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 22px; }
+  .scan-step { display: flex; align-items: center; gap: 10px; background: var(--gray-50); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 7px; font-size: 12px; }
+  .question-block { margin-bottom: 24px; }
+  .question-label { font-size: 14px; font-weight: 500; color: var(--gray-900); margin-bottom: 10px; line-height: 1.4; }
+  .q-optional { font-size: 11px; color: var(--gray-400); font-weight: 400; }
+  .emoji-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+  .emoji-opt { flex: 1; min-width: 52px; background: #fff; border: 1.5px solid var(--gray-100); border-radius: var(--radius-md); padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s; }
+  .emoji-opt:hover { border-color: var(--teal-100); background: var(--teal-50); }
+  .emoji-opt.sel { border-color: var(--teal-500); background: var(--teal-50); }
+  .emoji-opt .e { font-size: 22px; display: block; margin-bottom: 4px; }
+  .emoji-opt .l { font-size: 9px; color: var(--gray-400); line-height: 1.3; }
+  .emoji-opt.sel .l { color: var(--teal-700); }
+  .rating-row { display: flex; gap: 6px; }
+  .rating-lbl { display: flex; justify-content: space-between; margin-top: 4px; }
+  .r-btn { flex: 1; aspect-ratio: 1; background: #fff; border: 1.5px solid var(--gray-100); border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; color: var(--gray-700); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+  .r-btn:hover { border-color: var(--teal-100); }
+  .r-btn.sel { background: var(--teal-700); color: #fff; border-color: var(--teal-700); }
+  .choice-group { display: flex; flex-direction: column; gap: 7px; }
+  .c-btn { background: #fff; border: 1.5px solid var(--gray-100); border-radius: var(--radius-md); padding: 12px 14px; text-align: left; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--gray-700); cursor: pointer; transition: all 0.15s; }
+  .c-btn:hover { border-color: var(--teal-100); background: var(--teal-50); }
+  .c-btn.sel { border-color: var(--teal-500); background: var(--teal-50); color: var(--teal-900); font-weight: 500; }
+  .text-inp { width: 100%; background: #fff; border: 1.5px solid var(--gray-100); border-radius: var(--radius-md); padding: 12px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--gray-900); outline: none; transition: border-color 0.15s; resize: vertical; }
+  .text-inp:focus { border-color: var(--teal-500); }
+  .price-wrap { position: relative; }
+  .price-wrap .cur { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--gray-400); }
+  .price-wrap input { padding-left: 28px; }
+  .survey-intro { text-align: center; padding: 32px 0 20px; }
+  .survey-intro .big { font-size: 40px; margin-bottom: 12px; }
+  .survey-intro h2 { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+  .survey-intro p { font-size: 14px; color: var(--gray-400); line-height: 1.5; }
+  .thankyou { text-align: center; padding: 48px 20px; }
+  .thankyou .big { font-size: 52px; margin-bottom: 16px; }
+  .thankyou h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+  .thankyou p { font-size: 14px; color: var(--gray-400); line-height: 1.6; }
+  .perk { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--gray-400); margin-bottom: 5px; }
+  .perk .ck { color: var(--teal-500); }
+  .stats-bar { border-top: 1px solid var(--gray-100); padding: 12px 20px; display: flex; justify-content: center; gap: 20px; }
+  .stat { text-align: center; }
+  .stat-n { font-size: 14px; font-weight: 500; color: var(--gray-900); margin: 0; }
+  .stat-n.green { color: var(--teal-700); }
+  .stat-l { font-size: 10px; color: var(--gray-400); margin: 0; }
+  .divider-line { width: 0.5px; background: var(--gray-200); }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --gray-50: #1A1A18;
+      --gray-100: #2A2A27;
+      --gray-200: #3A3A36;
+      --gray-400: #999891;
+      --gray-700: #C8C6BC;
+      --gray-900: #F0EFE9;
+      --teal-50: #0D2E24;
+      --teal-900: #9FE1CB;
+    }
+    body { background: #111110 !important; }
+    .phone { background: #1E1E1C !important; border-color: #2A2A27 !important; }
+    .phone-bar { background: #161614 !important; border-color: #2A2A27 !important; }
+    .caption { background: #1E1E1C !important; border-color: #2A2A27 !important; }
+    .product-row { background: #1E1E1C !important; border-color: #2A2A27 !important; }
+    .emoji-opt { background: #1E1E1C !important; border-color: #2A2A27 !important; }
+    .emoji-opt.sel { background: #0D2E24 !important; }
+    .r-btn { background: #1E1E1C !important; border-color: #2A2A27 !important; color: #C8C6BC !important; }
+    .c-btn { background: #1E1E1C !important; border-color: #2A2A27 !important; color: #C8C6BC !important; }
+    .c-btn.sel { background: #0D2E24 !important; color: #9FE1CB !important; }
+    .btn-secondary { background: #1E1E1C !important; color: #F0EFE9 !important; border-color: #3A3A36 !important; }
+    .scan-step { background: #1E1E1C !important; }
+    .text-inp { background: #1E1E1C !important; border-color: #2A2A27 !important; color: #F0EFE9 !important; }
+    .total-box { background: #0D2E24 !important; }
+    .nav-back { background: #1E1E1C !important; border-color: #2A2A27 !important; color: #888780 !important; }
+    .survey-intro h2, .thankyou h2 { color: #F0EFE9 !important; }
+    .question-label { color: #F0EFE9 !important; }
+    .pr { border-color: #2A2A27 !important; }
+    .stats-bar { border-color: #2A2A27 !important; }
+    .divider-line { background: #2A2A27 !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar" style="width:0%"></div>
+
+<div class="header">
+  <span class="logo">SmartPrice</span>
+  <span class="step-label" id="step-label"></span>
+</div>
+
+<div class="container">
+
+  <!-- PANTALLA 1: HOME -->
+  <div class="screen active" id="s1">
+    <div class="phone">
+      <div class="phone-bar" style="justify-content:space-between;">
+        <span style="font-size:13px;font-weight:600;color:var(--teal-700);">SmartPrice</span>
+        <span style="font-size:11px;color:var(--gray-400);">Iniciar sesión</span>
+      </div>
+      <div style="padding:36px 20px 24px;text-align:center;">
+        <p style="font-size:19px;font-weight:600;color:var(--gray-900);margin:0 0 8px;line-height:1.3;">Tu próxima compra tiene un precio<br>que aún no conoces</p>
+        <p style="font-size:13px;color:var(--gray-400);margin:0 0 24px;">Descúbrelo gratis en segundos</p>
+        <div style="background:var(--gray-100);border-radius:var(--radius-full);padding:11px 16px;display:flex;align-items:center;gap:8px;text-align:left;">
+          <span style="font-size:15px;">🔍</span>
+          <span style="font-size:13px;color:var(--gray-400);">Escribe el producto que estás buscando</span>
+        </div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat"><p class="stat-n">+12.400</p><p class="stat-l">búsquedas este mes</p></div>
+        <div class="divider-line"></div>
+        <div class="stat"><p class="stat-n green">+847.000€</p><p class="stat-l">ahorrados en total</p></div>
+        <div class="divider-line"></div>
+        <div class="stat"><p class="stat-n">4 retailers</p><p class="stat-l">monitorizados</p></div>
+      </div>
+    </div>
+    <div class="caption">
+      <div class="caption-step">Pantalla 1 — Home</div>
+      <div class="caption-desc">Lo primero que ves. El buscador es el único foco. Los tres números de abajo son la única prueba de que funciona.</div>
+    </div>
+    <button class="btn btn-primary" onclick="go(2)">Siguiente →</button>
+  </div>
+
+  <!-- PANTALLA 2: RESULTADOS -->
+  <div class="screen" id="s2">
+    <div class="phone">
+      <div class="phone-bar">
+        <span style="font-size:15px;color:var(--gray-400);">←</span>
+        <div style="flex:1;background:var(--gray-100);border-radius:var(--radius-full);padding:6px 12px;display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px;">🔍</span>
+          <span style="font-size:12px;color:var(--gray-900);">barra samsung</span>
+        </div>
+      </div>
+      <div class="phone-body">
+        <p style="font-size:11px;color:var(--gray-400);margin:0 0 10px;">3 modelos encontrados</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="product-row" onclick="go(3)">
+            <div class="product-icon">🔊</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                <p style="font-size:12px;font-weight:600;color:var(--gray-900);margin:0;line-height:1.3;">Samsung HW-Q990D</p>
+                <span class="badge">Hasta 24%</span>
+              </div>
+              <p style="font-size:11px;color:var(--gray-400);margin:2px 0 0;">Barra de sonido 11.1.4 · 656W</p>
+            </div>
+          </div>
+          <div class="product-row" style="opacity:0.65;cursor:default;">
+            <div class="product-icon">🔊</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                <p style="font-size:12px;font-weight:600;color:var(--gray-900);margin:0;">Samsung HW-Q800D</p>
+                <span class="badge">Hasta 18%</span>
+              </div>
+              <p style="font-size:11px;color:var(--gray-400);margin:2px 0 0;">Barra de sonido 5.1.2 · 330W</p>
+            </div>
+          </div>
+          <div class="product-row" style="opacity:0.65;cursor:default;">
+            <div class="product-icon">🔊</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                <p style="font-size:12px;font-weight:600;color:var(--gray-900);margin:0;">Samsung HW-S800D</p>
+                <span style="font-size:10px;color:var(--gray-400);background:var(--gray-100);padding:2px 7px;border-radius:var(--radius-full);">Sin ahorro hoy</span>
+              </div>
+              <p style="font-size:11px;color:var(--gray-400);margin:2px 0 0;">Barra de sonido 5.0 · 200W</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <div class="caption-step">Pantalla 2 — Resultados de búsqueda</div>
+      <div class="caption-desc">Ves los modelos que coinciden. El badge muestra el porcentaje de ahorro posible — suficiente para generar curiosidad sin revelar el número exacto.</div>
+    </div>
+    <div class="nav">
+      <button class="nav-back" onclick="go(1)">← Atrás</button>
+      <button class="btn btn-primary" onclick="go(3)">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA 3: PRECIO BORROSO -->
+  <div class="screen" id="s3">
+    <div class="phone">
+      <div class="phone-bar">
+        <span style="font-size:15px;color:var(--gray-400);">←</span>
+        <span style="font-size:13px;font-weight:500;color:var(--gray-900);">Samsung HW-Q990D</span>
+      </div>
+      <div class="phone-body">
+        <div style="background:var(--gray-50);border-radius:var(--radius-md);padding:10px;display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+          <div class="product-icon">🔊</div>
+          <div>
+            <p style="font-size:11px;color:var(--gray-400);margin:0 0 1px;">Samsung · MediaMarkt.es</p>
+            <p style="font-size:12px;font-weight:600;color:var(--gray-900);margin:0 0 4px;">Samsung HW-Q990D</p>
+            <span class="badge">🔒 Hasta 24% de ahorro</span>
+          </div>
+        </div>
+        <p style="font-size:10px;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px;">Desglose de precio</p>
+        <div class="pr">
+          <div style="display:flex;align-items:center;gap:7px;"><div class="dot" style="background:var(--gray-200);"></div><span style="font-size:12px;color:var(--gray-400);">Precio de etiqueta</span></div>
+          <span style="font-size:12px;color:var(--gray-400);text-decoration:line-through;">899€</span>
+        </div>
+        <div class="pr" style="opacity:0.4;">
+          <div style="display:flex;align-items:flex-start;gap:7px;"><div class="dot" style="background:var(--teal-500);"></div><div><p class="blur" style="font-size:12px;color:var(--gray-900);margin:0;">Descuento en carrito</p><p class="blur" style="font-size:10px;color:var(--gray-400);margin:0;">Singles Day · MediaMarkt</p></div></div>
+          <span class="blur" style="font-size:12px;color:var(--teal-700);font-weight:500;">−XXX€</span>
+        </div>
+        <div class="pr" style="opacity:0.4;margin-bottom:10px;">
+          <div style="display:flex;align-items:flex-start;gap:7px;"><div class="dot" style="background:var(--teal-500);"></div><div><p class="blur" style="font-size:12px;color:var(--gray-900);margin:0;">Cashback Samsung</p><p class="blur" style="font-size:10px;color:var(--gray-400);margin:0;">Válido hasta 30 nov</p></div></div>
+          <span class="blur" style="font-size:12px;color:var(--teal-700);font-weight:500;">−XXX€</span>
+        </div>
+        <div class="total-box" style="opacity:0.3;margin-bottom:12px;">
+          <div><p style="font-size:10px;color:var(--teal-900);text-transform:uppercase;margin:0 0 1px;">[Precio óptimo hoy]</p><p class="blur" style="font-size:20px;font-weight:600;color:var(--teal-900);margin:0;">XXX€</p></div>
+        </div>
+        <button class="btn btn-primary" onclick="go(4)" style="margin-bottom:6px;">🔓 Desbloquear precio — gratis</button>
+        <p style="font-size:10px;color:var(--gray-400);text-align:center;">Sin tarjeta · acceso en 30 segundos</p>
+      </div>
+    </div>
+    <div class="caption">
+      <div class="caption-step">Pantalla 3 — Detalle con precio borroso</div>
+      <div class="caption-desc">Sabes que puedes ahorrar hasta un 24%, pero no cuánto en euros ni cómo conseguirlo. Para verlo, solo necesitas registrarte.</div>
+    </div>
+    <div class="nav">
+      <button class="nav-back" onclick="go(2)">← Atrás</button>
+      <button class="btn btn-primary" onclick="go(4)">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA 4: REGISTRO -->
+  <div class="screen" id="s4">
+    <div class="phone">
+      <div style="padding:24px 20px;">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--teal-50);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px;">🔓</div>
+          <p style="font-size:15px;font-weight:600;color:var(--gray-900);margin:0 0 4px;">Desbloquea tu precio</p>
+          <p style="font-size:12px;color:var(--gray-400);margin:0;">Samsung HW-Q990D · hasta 24% de ahorro</p>
+        </div>
+        <button class="btn btn-secondary" onclick="go(5)" style="display:flex;align-items:center;justify-content:center;gap:8px;">🇬 Continuar con Google</button>
+        <button class="btn btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:8px;">🍎 Continuar con Apple</button>
+        <div style="border-top:1px solid var(--gray-100);padding-top:14px;margin-top:6px;">
+          <div class="perk"><span class="ck">✓</span> 5 búsquedas de prueba</div>
+          <div class="perk"><span class="ck">✓</span> Sin tarjeta de crédito</div>
+          <div class="perk"><span class="ck">✓</span> No vendemos tus datos</div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <div class="caption-step">Pantalla 4 — Registro</div>
+      <div class="caption-desc">Un clic con Google o Apple. Sin formularios. El usuario sabe exactamente por qué se registra.</div>
+    </div>
+    <div class="nav">
+      <button class="nav-back" onclick="go(3)">← Atrás</button>
+      <button class="btn btn-primary" onclick="go(5)">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA 5: ESCANEO -->
+  <div class="screen" id="s5">
+    <div class="phone">
+      <div style="padding:32px 20px;text-align:center;">
+        <div class="scanning" style="width:52px;height:52px;border-radius:50%;background:var(--teal-50);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px;">🤖</div>
+        <p style="font-size:14px;font-weight:600;color:var(--gray-900);margin:0 0 4px;">Calculando tu precio...</p>
+        <p style="font-size:12px;color:var(--gray-400);margin:0 0 20px;">Samsung HW-Q990D</p>
+        <div style="text-align:left;">
+          <div class="scan-step" id="scan1">
+            <span id="icon1" style="font-size:15px;">✅</span>
+            <div><p style="font-size:12px;font-weight:500;color:var(--gray-900);margin:0;">Precio etiqueta detectado</p><p style="font-size:10px;color:var(--gray-400);margin:0;">899€ en MediaMarkt</p></div>
+          </div>
+          <div class="scan-step" id="scan2" style="opacity:0.4;">
+            <span id="icon2" style="font-size:15px;">⭕</span>
+            <div><p style="font-size:12px;font-weight:500;color:var(--gray-900);margin:0;">Sumando descuentos en carrito...</p><p style="font-size:10px;color:var(--gray-400);margin:0;">Verificando Singles Day</p></div>
+          </div>
+          <div class="scan-step" id="scan3" style="opacity:0.4;">
+            <span id="icon3" style="font-size:15px;">⭕</span>
+            <div><p style="font-size:12px;font-weight:500;color:var(--gray-900);margin:0;">Aplicando cashback Samsung...</p><p style="font-size:10px;color:var(--gray-400);margin:0;">Cashback fabricante</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <div class="caption-step">Pantalla 5 — Escaneo automático</div>
+      <div class="caption-desc">Sin botón. La pantalla avanza sola. Genera expectativa y demuestra que hay un proceso real detrás del resultado.</div>
+    </div>
+    <div class="nav">
+      <button class="nav-back" onclick="go(4)">← Atrás</button>
+      <button class="btn btn-primary" onclick="go(6)" style="opacity:0.5;" disabled id="btn-skip">Esperando...</button>
+    </div>
+  </div>
+
+  <!-- PANTALLA 6: AHA MOMENT -->
+  <div class="screen" id="s6">
+    <div class="phone">
+      <div style="background:var(--gray-50);padding:10px 14px;border-bottom:1px solid var(--gray-100);display:flex;gap:10px;align-items:flex-start;">
+        <div class="product-icon">🔊</div>
+        <div style="flex:1;">
+          <p style="font-size:11px;color:var(--gray-400);margin:0 0 1px;">Samsung · MediaMarkt.es</p>
+          <p style="font-size:12px;font-weight:600;color:var(--gray-900);margin:0 0 4px;">Samsung HW-Q990D</p>
+          <span class="badge">↓ Ahorra 189€</span>
+        </div>
+      </div>
+      <div style="padding:12px 14px;">
+        <p style="font-size:10px;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px;">Desglose de precio</p>
+        <div class="pr">
+          <div style="display:flex;align-items:center;gap:7px;"><div class="dot" style="background:var(--gray-200);"></div><span style="font-size:12px;color:var(--gray-400);">Precio de etiqueta</span></div>
+          <span style="font-size:12px;color:var(--gray-400);text-decoration:line-through;">899€</span>
+        </div>
+        <div class="pr">
+          <div style="display:flex;align-items:flex-start;gap:7px;"><div class="dot" style="background:var(--teal-500);"></div><div><p style="font-size:12px;color:var(--gray-900);margin:0;">Descuento en carrito</p><p style="font-size:10px;color:var(--gray-400);margin:0;">Singles Day · MediaMarkt</p></div></div>
+          <span style="font-size:12px;color:var(--teal-700);font-weight:600;">−110€</span>
+        </div>
+        <div class="pr" style="margin-bottom:10px;">
+          <div style="display:flex;align-items:flex-start;gap:7px;"><div class="dot" style="background:var(--teal-500);"></div><div><p style="font-size:12px;color:var(--gray-900);margin:0;">Cashback Samsung</p><p style="font-size:10px;color:var(--gray-400);margin:0;">Válido hasta 30 nov · <span style="color:var(--teal-700);">fácil ✓</span></p></div></div>
+          <span style="font-size:12px;color:var(--teal-700);font-weight:600;">−79€</span>
+        </div>
+        <div class="total-box" style="animation:countIn 0.4s ease forwards;">
+          <div><p style="font-size:10px;color:var(--teal-900);text-transform:uppercase;letter-spacing:0.04em;margin:0 0 2px;">[Precio óptimo hoy]</p><p style="font-size:22px;font-weight:700;color:var(--teal-900);margin:0;">710€</p></div>
+          <div style="text-align:right;"><p style="font-size:10px;color:var(--teal-700);margin:0 0 2px;">vs etiqueta</p><p style="font-size:14px;font-weight:600;color:var(--teal-700);margin:0;">−21%</p></div>
+        </div>
+        <button class="btn btn-primary" onclick="go(7)" style="margin-bottom:6px;">Ver guía paso a paso →</button>
+        <p style="font-size:10px;color:var(--gray-400);text-align:center;">Actualizado hace 3 min · MediaMarkt.es</p>
+      </div>
+    </div>
+    <div class="caption">
+      <div class="caption-step">Pantalla 6 — AHA MOMENT ✨</div>
+      <div class="caption-desc">El desglose completo aparece. Ves exactamente de dónde viene cada euro. Sorpresa + sensación de astucia.</div>
+    </div>
+    <div class="nav">
+      <button class="nav-back" onclick="go(5)">← Atrás</button>
+      <button class="btn btn-primary" onclick="go(7)">Continuar →</button>
+    </div>
+  </div>
+
+  <!-- ENCUESTA INTRO -->
+  <div class="screen" id="s7">
+    <div class="survey-intro">
+      <div class="big">💬</div>
+      <h2>Cuéntanos qué te pareció</h2>
+      <p>6 preguntas rápidas. Tu opinión nos ayuda a construir algo que realmente valga la pena.</p>
+    </div>
+    <button class="btn btn-primary" onclick="go(8)">Empezar →</button>
+  </div>
+
+  <!-- ENCUESTA PARTE 1 -->
+  <div class="screen" id="s8">
+    <div class="question-block">
+      <div class="question-label">1. En una frase, ¿qué hace SmartPrice?</div>
+      <textarea class="text-inp" id="q1" rows="3" placeholder="Escribe aquí..."></textarea>
+    </div>
+    <div class="question-block">
+      <div class="question-label">2. Al ver el precio desglosado, ¿qué sentiste?</div>
+      <div class="emoji-grid">
+        <div class="emoji-opt" onclick="selEmoji(this,'q2')"><span class="e">😐</span><span class="l">Me dejó igual</span></div>
+        <div class="emoji-opt" onclick="selEmoji(this,'q2')"><span class="e">😮</span><span class="l">Me sorprendió</span></div>
+        <div class="emoji-opt" onclick="selEmoji(this,'q2')"><span class="e">🤯</span><span class="l">No me lo esperaba</span></div>
+        <div class="emoji-opt" onclick="selEmoji(this,'q2')"><span class="e">😏</span><span class="l">Me sentí listo/a</span></div>
+        <div class="emoji-opt" onclick="selEmoji(this,'q2')"><span class="e">🤔</span><span class="l">Me generó dudas</span></div>
+      </div>
+      <input type="hidden" id="q2">
+    </div>
+    <div class="question-block">
+      <div class="question-label">3. Sin pensarlo mucho — ¿cuánto pagarías al mes por acceso ilimitado?</div>
+      <div class="price-wrap">
+        <span class="cur">€</span>
+        <input type="number" class="text-inp" id="q3" placeholder="0" min="0" step="0.5">
+      </div>
+    </div>
+    <div class="nav" style="margin-top:8px;">
+      <button class="nav-back" onclick="go(7)">← Atrás</button>
+      <button class="btn btn-primary" onclick="nextPart()">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- ENCUESTA PARTE 2 -->
+  <div class="screen" id="s9">
+    <div class="question-block">
+      <div class="question-label">4. ¿El precio borroso te generó suficiente curiosidad para registrarte?</div>
+      <div class="rating-row">
+        <button class="r-btn" onclick="selRating(this,'q4','1')">1</button>
+        <button class="r-btn" onclick="selRating(this,'q4','2')">2</button>
+        <button class="r-btn" onclick="selRating(this,'q4','3')">3</button>
+        <button class="r-btn" onclick="selRating(this,'q4','4')">4</button>
+        <button class="r-btn" onclick="selRating(this,'q4','5')">5</button>
+      </div>
+      <div class="rating-lbl">
+        <span style="font-size:10px;color:var(--gray-400);">Nada</span>
+        <span style="font-size:10px;color:var(--gray-400);">Muchísimo</span>
+      </div>
+      <input type="hidden" id="q4">
+    </div>
+    <div class="question-block">
+      <div class="question-label">5. Pensando en una compra real tuya, ¿lo habrías usado?</div>
+      <div class="choice-group">
+        <button class="c-btn" onclick="selChoice(this,'q5')">Sí, para eso exactamente</button>
+        <button class="c-btn" onclick="selChoice(this,'q5')">Quizás</button>
+        <button class="c-btn" onclick="selChoice(this,'q5')">No lo veo para mí</button>
+      </div>
+      <input type="hidden" id="q5">
+    </div>
+    <div class="question-block">
+      <div class="question-label">6. ¿Qué cambiarías o qué te faltó? <span class="q-optional">(opcional)</span></div>
+      <textarea class="text-inp" id="q6" rows="3" placeholder="Cualquier cosa que se te haya venido a la mente..."></textarea>
+    </div>
+    <div class="nav" style="margin-top:8px;">
+      <button class="nav-back" onclick="go(8)">← Atrás</button>
+      <button class="btn btn-primary" onclick="submitSurvey()">Enviar →</button>
+    </div>
+  </div>
+
+  <!-- GRACIAS -->
+  <div class="screen" id="s10">
+    <div class="thankyou">
+      <div class="big">🙌</div>
+      <h2>¡Gracias de verdad!</h2>
+      <p>Tu opinión nos ayuda a construir SmartPrice de forma que tenga sentido para personas reales.<br><br>Si quieres contarnos algo más, escríbenos directamente.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const TOTAL = 10;
+let cur = 1;
+let scanTimer = null;
+const answers = {};
+
+const labels = {
+  1:'1 / 6 · Flujo del producto', 2:'2 / 6 · Flujo del producto',
+  3:'3 / 6 · Flujo del producto', 4:'4 / 6 · Flujo del producto',
+  5:'5 / 6 · Flujo del producto', 6:'6 / 6 · Flujo del producto',
+  7:'Encuesta', 8:'Encuesta · 1 de 2', 9:'Encuesta · 2 de 2', 10:'¡Listo!'
+};
+
+function go(n) {
+  if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+  document.getElementById('s'+cur).classList.remove('active');
+  cur = n;
+  document.getElementById('s'+cur).classList.add('active');
+  document.getElementById('step-label').textContent = labels[cur] || '';
+  const pct = ((cur-1)/(TOTAL-1))*100;
+  document.getElementById('progress-bar').style.width = pct+'%';
+  window.scrollTo({top:0,behavior:'smooth'});
+  if (cur === 5) startScan();
+}
+
+function startScan() {
+  const s2 = document.getElementById('scan2');
+  const s3 = document.getElementById('scan3');
+  const i2 = document.getElementById('icon2');
+  const i3 = document.getElementById('icon3');
+  const btn = document.getElementById('btn-skip');
+  s2.style.opacity = '1';
+  i2.textContent = '⏳';
+  i2.className = 'scanning';
+  scanTimer = setTimeout(() => {
+    i2.textContent = '✅'; i2.className = '';
+    s3.style.opacity = '1'; i3.textContent = '⏳'; i3.className = 'scanning';
+    scanTimer = setTimeout(() => {
+      i3.textContent = '✅'; i3.className = '';
+      scanTimer = setTimeout(() => go(6), 600);
+    }, 900);
+  }, 1000);
+}
+
+function selEmoji(el, id) {
+  el.closest('.emoji-grid').querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('sel'));
+  el.classList.add('sel');
+  answers[id] = el.querySelector('.l').textContent;
+  document.getElementById(id).value = answers[id];
+}
+
+function selRating(el, id, val) {
+  el.closest('.rating-row').querySelectorAll('.r-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  answers[id] = val;
+  document.getElementById(id).value = val;
+}
+
+function selChoice(el, id) {
+  el.closest('.choice-group').querySelectorAll('.c-btn').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  answers[id] = el.textContent.trim();
+  document.getElementById(id).value = answers[id];
+}
+
+function nextPart() {
+  if (!document.getElementById('q1').value.trim()) { alert('Por favor responde la primera pregunta.'); return; }
+  if (!answers.q2) { alert('Por favor selecciona cómo te sentiste.'); return; }
+  answers.q1 = document.getElementById('q1').value.trim();
+  answers.q3 = document.getElementById('q3').value || 'No respondido';
+  go(9);
+}
+
+function submitSurvey() {
+  if (!answers.q4) { alert('Por favor valora la curiosidad que generó el precio borroso.'); return; }
+  if (!answers.q5) { alert('Por favor selecciona si lo habrías usado.'); return; }
+  answers.q6 = document.getElementById('q6').value.trim() || 'Sin comentarios';
+  const FORMSPREE_ID = 'xkoepjrn';
+  if (FORMSPREE_ID === 'YOUR_FORM_ID') { go(10); return; }
+  fetch('https://formspree.io/f/'+FORMSPREE_ID, {
+    method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body: JSON.stringify(answers)
+  }).then(() => go(10)).catch(() => go(10));
+}
+
+document.getElementById('step-label').textContent = labels[1];
+</script>
+</body>
+</html>
