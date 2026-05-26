@@ -24,6 +24,8 @@
   .screen { display: none; animation: fadeUp 0.3s ease forwards; }
   .screen.active { display: block; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+  .fading { animation: fadeOut 0.2s ease forwards; pointer-events: none; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
   @keyframes countIn { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
   .scanning { animation: pulse 1.2s ease-in-out infinite; }
@@ -149,9 +151,10 @@
       <div style="padding:36px 20px 24px;text-align:center;">
         <p style="font-size:19px;font-weight:600;color:var(--gray-900);margin:0 0 8px;line-height:1.3;">Tu próxima compra tiene un precio<br>que aún no conoces</p>
         <p style="font-size:13px;color:var(--gray-400);margin:0 0 24px;">Descúbrelo gratis en segundos</p>
-        <div style="background:var(--gray-100);border-radius:var(--radius-full);padding:11px 16px;display:flex;align-items:center;gap:8px;text-align:left;">
+        <div style="background:var(--gray-100);border-radius:var(--radius-full);padding:6px 6px 6px 16px;display:flex;align-items:center;gap:8px;text-align:left;">
           <span style="font-size:15px;">🔍</span>
-          <span style="font-size:13px;color:var(--gray-400);">Escribe el producto que estás buscando</span>
+          <input id="search-input" type="text" placeholder="Escribe el producto que estás buscando" onkeydown="if(event.key==='Enter'&&this.value.trim()){doSearch();}" style="flex:1;border:none;background:transparent;font-size:13px;color:var(--gray-900);outline:none;font-family:'DM Sans',sans-serif;padding:5px 0;">
+          <button id="search-btn" onclick="if(document.getElementById('search-input').value.trim()){doSearch();}" style="background:var(--teal-700);border:none;border-radius:var(--radius-full);padding:7px 14px;color:#fff;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;flex-shrink:0;min-width:64px;">Buscar</button>
         </div>
       </div>
       <div class="stats-bar">
@@ -486,14 +489,19 @@ const labels = {
 
 function go(n) {
   if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
-  document.getElementById('s'+cur).classList.remove('active');
-  cur = n;
-  document.getElementById('s'+cur).classList.add('active');
-  document.getElementById('step-label').textContent = labels[cur] || '';
-  const pct = ((cur-1)/(TOTAL-1))*100;
-  document.getElementById('progress-bar').style.width = pct+'%';
-  window.scrollTo({top:0,behavior:'smooth'});
-  if (cur === 5) startScan();
+  const current = document.getElementById('s'+cur);
+  current.classList.add('fading');
+  setTimeout(() => {
+    current.classList.remove('active');
+    current.classList.remove('fading');
+    cur = n;
+    document.getElementById('s'+cur).classList.add('active');
+    document.getElementById('step-label').textContent = labels[cur] || '';
+    const pct = ((cur-1)/(TOTAL-1))*100;
+    document.getElementById('progress-bar').style.width = pct+'%';
+    window.scrollTo({top:0,behavior:'smooth'});
+    if (cur === 5) startScan();
+  }, 250);
 }
 
 function startScan() {
@@ -555,6 +563,15 @@ function submitSurvey() {
     method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
     body: JSON.stringify(answers)
   }).then(() => go(10)).catch(() => go(10));
+}
+
+function doSearch() {
+  const btn = document.getElementById('search-btn');
+  const input = document.getElementById('search-input');
+  btn.textContent = '⏳';
+  btn.style.opacity = '0.7';
+  input.disabled = true;
+  setTimeout(() => go(2), 1500);
 }
 
 document.getElementById('step-label').textContent = labels[1];
