@@ -91,6 +91,9 @@
   .stat-l { font-size: 10px; color: var(--gray-400); margin: 0; }
   .divider-line { width: 0.5px; background: var(--gray-200); }
 
+  .caption { display: none; }
+  .caption.visible { display: block; }
+
   @media (prefers-color-scheme: dark) {
     :root {
       --gray-50: #1A1A18;
@@ -545,6 +548,9 @@ function submitSurvey() {
 }
 
 document.getElementById('step-label').textContent = labels[1];
+  if (new URLSearchParams(window.location.search).get('preview') === 'true') {
+    document.querySelectorAll('.caption').forEach(el => el.classList.add('visible'));
+  }
 </script>
 </body>
 </html>
